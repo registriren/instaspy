@@ -407,7 +407,7 @@ def delay(chat_id):
         then = now
     delta = now - then
     print('delta=', delta.seconds)
-    if delta.seconds < 200:
+    if delta.seconds < 1800:
         return False
     else:
         update_delay(chat_id)
