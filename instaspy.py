@@ -238,8 +238,6 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
         if (len(list_image_new) != 0) or (len(list_video_new) != 0):
             logger.info("Story downloading ended with " + str(len(list_image_new)) + " new images and " + str(
                 len(list_video_new)) + " new videos downloaded.")
-            print('list video = ', list_video_new)
-            print('list image = ', list_image_new)
             attach = bot.attach_image(list_image_new) + bot.attach_video(list_video_new)
             bot.send_content(attach, chat_id, text='Новые истории от @{}'.format(user_to_check))
             shutil.rmtree(os.getcwd() + "/stories/{}".format(user_to_check), ignore_errors=False, onerror=None)
@@ -319,7 +317,7 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
     for index, user_to_check in enumerate(users_to_check):
         try:
             status = download_user(index, user_to_check)
-            print('status = ', status)
+            # print('status = ', status)
             if not status:
                 return False
         except KeyboardInterrupt:
@@ -333,7 +331,6 @@ def search_history(chat_id, name):
     c.execute("SELECT chat_id FROM users WHERE history LIKE '%{}%' AND chat_id= {}".format(name, chat_id))
     dat = c.fetchone()
     c.close()
-    print('res search = ', dat)
     return dat
 
 
@@ -345,9 +342,7 @@ def get_history(chat_id):
         dat = dat[0]
     else:
         dat = None
-    print('get_history return = ', dat)  # or use fetchone()
     c.close()
-    logger.info('Get history for chat_id "' + str(chat_id) + '".')
     return dat
 
 
@@ -359,15 +354,14 @@ def add_history(chat_id, history):
             history = res + ' ' + history
         else:
             return
-    print('add_history = ', history)
     try:
         c.execute(
             "INSERT INTO users (chat_id, history) VALUES ({}, '{}')".format(chat_id, history))
-        logger.info('New history was made: {0!s}'.format(chat_id))
+        logger.info('New history was made for user {0!s}'.format(chat_id))
     except:
         c.execute(
             "UPDATE users SET history = '{}' WHERE chat_id = {}".format(history, chat_id))
-        logger.info('Update history: {0!s}'.format(chat_id))
+        logger.info('Update history for user {0!s}'.format(chat_id))
     conn.commit()
     c.close()
 
@@ -377,7 +371,7 @@ def update_delay(chat_id):
     delay = now.strftime("%d-%m-%Y %H:%M")
     c = conn.cursor()
     c.execute("UPDATE users SET delay = '{}' WHERE chat_id = {}".format(delay, chat_id))
-    logger.info('Update delay for {}'.format(chat_id))
+    logger.info('Update delay for user {}'.format(chat_id))
     conn.commit()
     c.close()
     return
@@ -389,26 +383,22 @@ def get_delay(chat_id):
     dat = c.fetchone()
     if dat != None:
         dat = dat[0]
-    print('get delay = ', dat)  # or use fetchone()
     c.close()
     return dat
 
 
 def delay(chat_id):
     now = datetime.datetime.now()
-    # now.strftime("%d-%m-%Y %H:%M")
     then = get_delay(chat_id)
-    # then = then.get(chat_id)
-    print('then for ', chat_id, ' = ', then)
     if then != None:
         then = datetime.datetime.strptime(then, "%d-%m-%Y %H:%M")
     else:
         then = now
     delta = now - then
-    print('delta=', delta.seconds)
     if delta.seconds < 1800:
         return False
     else:
+        logger.info('Delta delay >= 1800 for user ', chat_id)
         update_delay(chat_id)
         return True
 
@@ -420,8 +410,6 @@ def get_list_chats():
     dat = []
     if lst != None:
         dat = [lst[i][0] for i in range(len(lst))]
-        print('get list chats = ', dat)  # or use fetchone()
-        # print('get list chats split= ', dat.split(' '))
     c.close()
     return dat
 
@@ -431,7 +419,6 @@ def update_stories():
     for chat in chats:
         if delay(chat):
             users = get_subscribe(chat)
-            print('users na start = ', users.split(' '))
             start_download(users.split(' '), chat)
 
 
@@ -452,7 +439,6 @@ def get_subscribe(chat_id):
         dat = dat[0]
     else:
         dat = None
-    print('get_subscribe = ', dat)  # or use fetchone()
     c.close()
     return dat
 
@@ -480,9 +466,7 @@ def add_subscribe(chat_id, subscribe):
 
 
 def main():
-    chat_id = bot.get_chat_id()
-    print(type(chat_id))
-    print(chat_id)
+    logger.info('*** Start bot instaspy ***')
     marker = None
     while True:
         update = bot.get_updates(marker, limit=1)
@@ -504,7 +488,7 @@ def main():
             if start_download([text], chat_id):
                 bot.delete_message(mid)
                 add_subscribe(chat_id, text)
-                bot.send_message('Вы подписаны на stories пользователя: @{}'.format(text), chat_id)
+                bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
             else:
                 bot.delete_message(mid)
                 bot.send_message('Ошибка. Не могу получить информацию пользователя @{}'.format(text), chat_id)
