@@ -386,7 +386,6 @@ def update_delay(chat_id):
 def get_delay(chat_id):
     c = conn.cursor()
     c.execute("SELECT delay FROM users WHERE chat_id= {}".format(chat_id))
-    logger.info('Using delay for {}'.format(chat_id))
     dat = c.fetchone()
     if dat != None:
         dat = dat[0]
