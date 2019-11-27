@@ -395,10 +395,10 @@ def delay(chat_id):
     else:
         then = now
     delta = now - then
-    if delta.seconds < 1800:
+    if delta.seconds < 60:
         return False
     else:
-        logger.info('Delta delay more or equal norm for user ', str(chat_id[0]))
+        logger.info('Delta delay more or equal norm for user {}'.format(chat_id))
         update_delay(chat_id)
         return True
 
