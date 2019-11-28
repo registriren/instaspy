@@ -465,9 +465,63 @@ def add_subscribe(chat_id, subscribe):
     c.close()
 
 
+def subscribe(text, chat_id):
+    if len(text) << 100 and text != None:
+        upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
+        mid = bot.get_message_id(upd)
+        if start_download([text], chat_id):
+            bot.delete_message(mid)
+            add_subscribe(chat_id, text)
+            bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
+        else:
+            bot.delete_message(mid)
+            bot.send_message('Ошибка. Не могу получить информацию пользователя @{}'.format(text), chat_id)
+
+
+def menu(callback_id, chat_id, notifi=None):
+    key1 = bot.button_callback('\U0001F4C3 Список подписок', 'list')
+    key2 = bot.button_callback('\U0001F4DD Подписаться', 'subscribe')
+    key3 = bot.button_callback('\U000026D4 Отписаться', 'unsubscribe')
+    key4 = bot.button_callback('\U0001F525 Отписаться от всех', 'allunsubscribe')
+    key = [key1, key2, key3, key4]
+    if callback_id != None:
+        button = bot.attach_buttons(key)
+        message = {"text": 'Выберите действие',
+                   "attachments": button}
+        upd = bot.send_answer_callback(callback_id, notification=notifi, message=message)
+    else:
+        upd = bot.send_buttons('Выберите действие', key, chat_id)
+    mid = bot.get_message_id(upd)
+    return mid
+
+
+def list_subscribe(callback_id, chat_id):
+    key = []
+    mid = None
+    back = bot.button_callback('🏠Назад', 'home', intent='positive')
+    users = get_subscribe(chat_id)
+    if users:
+        for user in users.split(' '):
+            button = bot.button_callback('@{}'.format(user), user)
+            key.append(button)
+        key.append(back)
+        if callback_id != None:
+            button = bot.attach_buttons(key)
+            message = {"text": 'Подписки',
+                       "attachments": button}
+            upd = bot.send_answer_callback(callback_id, notification=None, message=message)
+        else:
+            upd = bot.send_buttons('Подписки', key, chat_id)
+        mid = bot.get_message_id(upd)
+    return mid
+
+
 def main():
     logger.info('*** Start bot instaspy ***')
     marker = None
+    mid_m = None
+    mid_d = None
+    cmd = None
     while True:
         update = bot.get_updates(marker, limit=1)
         if update is None:
@@ -479,19 +533,41 @@ def main():
         text = bot.get_text(update)
         chat_id = bot.get_chat_id(update)
         payload = bot.get_payload(update)
-
-        if text == '/menu':
-            pass
-        elif len(text) << 100 and text != None:
-            upd = bot.send_message('Получаю информацию о пользователе @{} ...'.format(text), chat_id)
-            mid = bot.get_message_id(upd)
-            if start_download([text], chat_id):
-                bot.delete_message(mid)
-                add_subscribe(chat_id, text)
-                bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
+        cbid = bot.get_callback_id(update)
+        if mid_m != None:
+            mid_d = mid_m
+        if type_upd == 'bot_started':
+            mid_m = menu(callback_id=cbid, chat_id=chat_id)
+        if type_upd == 'message_created':
+            if text == 'menu':
+                payload = 'home'
             else:
-                bot.delete_message(mid)
-                bot.send_message('Ошибка. Не могу получить информацию пользователя @{}'.format(text), chat_id)
+                bot.delete_message(mid_d)
+                subscribe(text, chat_id)
+            #payload = 'home'
+        if payload == 'home':
+            mid_m = menu(callback_id=cbid, chat_id=chat_id)
+        users = get_subscribe(chat_id)
+        print(users)
+        if payload == 'subscribe':
+            bot.delete_message(mid_d)
+            bot.send_message('Отправьте имя пользователя для подписки', chat_id)
+        elif payload and not users:
+            menu(callback_id=cbid, chat_id=chat_id, notifi='У Dас нет подписок')
+        elif users and payload in users.split(' '):
+            if cmd == 'unsubscribe':
+                notify = 'Вы отписались от @{}'.format(payload)
+                mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
+                cmd = cmd + '@' + payload + 'for user {}'.format(chat_id)
+                logger.info(cmd)
+            elif cmd != None:
+                mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
+        elif payload == 'allunsubscribe':
+            menu(callback_id=cbid, chat_id=chat_id, notifi='Вы отписаны от всех пользователей')
+            cmd = None
+        elif payload == 'list' or payload == 'unsubscribe':
+            mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
+            cmd = payload
 
 
 if __name__ == '__main__':
