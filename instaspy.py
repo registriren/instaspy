@@ -255,7 +255,7 @@ def download_file(url, path, attempt=0):
     try:
         urllib.urlretrieve(url, path)
     except Exception as e:
-        if not attempt == 3:
+        if not attempt == 1:
             attempt += 1
             logger.error("({:d}) Download failed(file): {:s}.".format(attempt, str(e)))
             logger.warning("Trying again in 5 seconds.")
@@ -303,7 +303,7 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
                 logger.info('({}/{}) 5 second time-out until next user...'.format((index + 1), len(users_to_check)))
                 time.sleep(5)
         except Exception as e:
-            if not attempt == 2:
+            if not attempt == 1:
                 attempt += 1
                 logger.error("({:d}) Download failed(user): {:s}.".format(attempt, str(e)))
                 logger.warning("Trying again in 5 seconds.")
@@ -444,10 +444,10 @@ def get_subscribe(chat_id):
 
 
 def add_subscribe(chat_id, subscribe):
-    c = conn.cursor()
     now = datetime.datetime.now()
     delay = now.strftime("%d-%m-%Y %H:%M")
     res = get_subscribe(chat_id)
+    c = conn.cursor()
     if res:
         if subscribe not in res.split(' '):
             subscribe = res + ' ' + subscribe
@@ -477,11 +477,32 @@ def subscribe(text, chat_id):
             bot.delete_message(mid)
             bot.send_message('Ошибка. Не могу получить информацию пользователя @{}'.format(text), chat_id)
 
+def del_all_subscribe(chat_id):
+    c = conn.cursor()
+    c.execute("DELETE FROM users WHERE chat_id= {}".format(chat_id))
+    logger.info('Delete all subscribe for {}'.format(chat_id))
+    conn.commit()
+    c.close()
+
+
+def del_subscribe(user, chat_id):
+    users = get_subscribe(chat_id)
+    users = users.split(' ')
+    users.remove(user)
+    users = ' '.join(users)
+    c = conn.cursor()
+    c.execute("UPDATE users SET subscribe = '{}' WHERE chat_id = {}".format(users, chat_id))
+    logger.info('Unsubscribe @{} for user {}'.format(user, chat_id))
+    conn.commit()
+    c.close()
+
+
+
 
 def menu(callback_id, chat_id, notifi=None):
-    key1 = bot.button_callback('\U0001F4C3 Список подписок', 'list')
+    key1 = bot.button_callback('\U0001F4CB Список подписок', 'list')
     key2 = bot.button_callback('\U0001F4DD Подписаться', 'subscribe')
-    key3 = bot.button_callback('\U000026D4 Отписаться', 'unsubscribe')
+    key3 = bot.button_callback('\U0000274C Отписаться', 'unsubscribe')
     key4 = bot.button_callback('\U0001F525 Отписаться от всех', 'allunsubscribe')
     key = [key1, key2, key3, key4]
     if callback_id != None:
@@ -539,31 +560,33 @@ def main():
         if type_upd == 'bot_started':
             mid_m = menu(callback_id=cbid, chat_id=chat_id)
         if type_upd == 'message_created':
-            if text == 'menu':
+            if text.lower() == 'menu' or text.lower() == '/menu':
                 payload = 'home'
             else:
                 bot.delete_message(mid_d)
                 subscribe(text, chat_id)
-            #payload = 'home'
         if payload == 'home':
             mid_m = menu(callback_id=cbid, chat_id=chat_id)
         users = get_subscribe(chat_id)
-        print(users)
+        if not users:
+            list_users = []
+        else:
+            list_users = users.split(' ')
         if payload == 'subscribe':
             bot.delete_message(mid_d)
             bot.send_message('Отправьте имя пользователя для подписки', chat_id)
         elif payload and not users:
-            menu(callback_id=cbid, chat_id=chat_id, notifi='У Dас нет подписок')
-        elif users and payload in users.split(' '):
+            menu(callback_id=cbid, chat_id=chat_id, notifi='У Вас нет подписок')
+        elif payload in list_users:
             if cmd == 'unsubscribe':
                 notify = 'Вы отписались от @{}'.format(payload)
                 mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
-                cmd = cmd + '@' + payload + 'for user {}'.format(chat_id)
-                logger.info(cmd)
+                del_subscribe(payload, chat_id)
             elif cmd != None:
                 mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
         elif payload == 'allunsubscribe':
             menu(callback_id=cbid, chat_id=chat_id, notifi='Вы отписаны от всех пользователей')
+            del_all_subscribe(chat_id)
             cmd = None
         elif payload == 'list' or payload == 'unsubscribe':
             mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
