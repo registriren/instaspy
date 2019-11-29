@@ -467,15 +467,26 @@ def add_subscribe(chat_id, subscribe):
 
 def subscribe(text, chat_id):
     if len(text) << 100 and text != None:
-        upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
-        mid = bot.get_message_id(upd)
-        if start_download([text], chat_id):
-            bot.delete_message(mid)
-            add_subscribe(chat_id, text)
-            bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
+        res = get_subscribe(chat_id)
+        if res:
+            res = res.split(' ')
+        if len(res) < 10:
+            print(len(res))
+            upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
+            mid = bot.get_message_id(upd)
+            if start_download([text], chat_id):
+                bot.delete_message(mid)
+                add_subscribe(chat_id, text)
+                bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
+            else:
+                bot.delete_message(mid)
+                bot.send_message('Ошибка. Возможно пользователя @{} не существует'.format(text), chat_id)
         else:
-            bot.delete_message(mid)
-            bot.send_message('Ошибка. Не могу получить информацию пользователя @{}'.format(text), chat_id)
+            bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
+
+
+
+
 
 def del_all_subscribe(chat_id):
     c = conn.cursor()
