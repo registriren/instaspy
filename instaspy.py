@@ -470,6 +470,8 @@ def subscribe(text, chat_id):
         res = get_subscribe(chat_id)
         if res:
             res = res.split(' ')
+        else:
+            res = []
         if len(res) < 10:
             print(len(res))
             upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
