@@ -255,14 +255,14 @@ def download_file(url, path, attempt=0):
     try:
         urllib.urlretrieve(url, path)
     except Exception as e:
-        if not attempt == 1:
-            attempt += 1
-            logger.error("({:d}) Download failed(file): {:s}.".format(attempt, str(e)))
-            logger.warning("Trying again in 5 seconds.")
-            time.sleep(5)
-            download_file(url, path, attempt)
-        else:
-            logger.error("Retry failed three times, skipping file.")
+        #if not attempt == 1:
+        #    attempt += 1
+        #    logger.error("({:d}) Download failed(file): {:s}.".format(attempt, str(e)))
+        #    logger.warning("Trying again in 5 seconds.")
+        #    time.sleep(5)
+        #    download_file(url, path, attempt)
+        #else:
+        logger.error("Retry failed three times, skipping file.")
 
 
 def command_exists(command):
@@ -303,14 +303,14 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
                 logger.info('({}/{}) 5 second time-out until next user...'.format((index + 1), len(users_to_check)))
                 time.sleep(5)
         except Exception as e:
-            if not attempt == 1:
-                attempt += 1
-                logger.error("({:d}) Download failed(user): {:s}.".format(attempt, str(e)))
-                logger.warning("Trying again in 5 seconds.")
-                time.sleep(5)
-                download_user(index, user, attempt)
-            else:
-                logger.error("Retry failed three times, skipping user.")
+            #if not attempt == 1:
+            #    attempt += 1
+            #    logger.error("({:d}) Download failed(user): {:s}.".format(attempt, str(e)))
+            #    logger.warning("Trying again in 5 seconds.")
+            #    time.sleep(5)
+            #    download_user(index, user, attempt)
+            #else:
+            logger.error("Retry failed three times, skipping user.")
             return False
         return True
 
@@ -561,6 +561,7 @@ def main():
             mid_m = menu(callback_id=cbid, chat_id=chat_id)
         if type_upd == 'message_created':
             if text.lower() == 'menu' or text.lower() == '/menu':
+                bot.delete_message(mid_d)
                 payload = 'home'
             else:
                 bot.delete_message(mid_d)
