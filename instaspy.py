@@ -8,6 +8,7 @@ import subprocess
 from botapitamtam import BotHandler
 import json
 import logging
+from threading import Thread
 
 try:
     import urllib.request as urllib
@@ -54,7 +55,7 @@ if not os.path.isfile('users.db'):
     c.close()
     conn.close()
 
-conn = sqlite3.connect("users.db")
+conn = sqlite3.connect("users.db", check_same_thread=False)
 
 
 def to_json(python_object):
@@ -255,13 +256,13 @@ def download_file(url, path, attempt=0):
     try:
         urllib.urlretrieve(url, path)
     except Exception as e:
-        #if not attempt == 1:
+        # if not attempt == 1:
         #    attempt += 1
         #    logger.error("({:d}) Download failed(file): {:s}.".format(attempt, str(e)))
         #    logger.warning("Trying again in 5 seconds.")
         #    time.sleep(5)
         #    download_file(url, path, attempt)
-        #else:
+        # else:
         logger.error("Retry failed three times, skipping file.")
 
 
@@ -271,6 +272,19 @@ def command_exists(command):
         subprocess.call([command], stdout=fnull, stderr=subprocess.STDOUT)
         return True
     except OSError:
+        return False
+
+
+def check_user(user):
+    ig_client = login(username, password)
+    try:
+        user_res = ig_client.username_info(user)
+        user_id = user_res['user']['pk']
+        follow_res = ig_client.friendships_show(user_id)
+        if follow_res.get("is_private") and not follow_res.get("following"):
+            raise Exception("You are not following this private user.")
+        return True
+    except:
         return False
 
 
@@ -303,13 +317,13 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
                 logger.info('({}/{}) 5 second time-out until next user...'.format((index + 1), len(users_to_check)))
                 time.sleep(5)
         except Exception as e:
-            #if not attempt == 1:
+            # if not attempt == 1:
             #    attempt += 1
             #    logger.error("({:d}) Download failed(user): {:s}.".format(attempt, str(e)))
             #    logger.warning("Trying again in 5 seconds.")
             #    time.sleep(5)
             #    download_user(index, user, attempt)
-            #else:
+            # else:
             logger.error("Retry failed three times, skipping user.")
             return False
         return True
@@ -395,7 +409,7 @@ def delay(chat_id):
     else:
         then = now
     delta = now - then
-    if delta.seconds < 1800:
+    if delta.seconds < 3600:
         return False
     else:
         logger.info('Delta delay more or equal norm for user {}'.format(chat_id))
@@ -415,11 +429,13 @@ def get_list_chats():
 
 
 def update_stories():
-    chats = get_list_chats()
-    for chat in chats:
-        if delay(chat):
-            users = get_subscribe(chat)
-            start_download(users.split(' '), chat)
+    while True:
+        chats = get_list_chats()
+        for chat in chats:
+            if delay(chat):
+                users = get_subscribe(chat)
+                user = users.split(' ')
+                start_download(user, chat)
 
 
 def chat_status_control():
@@ -445,6 +461,7 @@ def get_subscribe(chat_id):
 
 def add_subscribe(chat_id, subscribe):
     now = datetime.datetime.now()
+    now = now - datetime.timedelta(seconds=3500)
     delay = now.strftime("%d-%m-%Y %H:%M")
     res = get_subscribe(chat_id)
     c = conn.cursor()
@@ -476,7 +493,11 @@ def subscribe(text, chat_id):
             print(len(res))
             upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
             mid = bot.get_message_id(upd)
-            if start_download([text], chat_id):
+            # if start_download([text], chat_id):
+            # start_download_thred = Thread(target=start_download, args=([text], chat_id))
+            # start_download_thred.start()
+            # start_download_thred.join()
+            if check_user(text):
                 bot.delete_message(mid)
                 add_subscribe(chat_id, text)
                 bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
@@ -485,9 +506,6 @@ def subscribe(text, chat_id):
                 bot.send_message('Ошибка. Возможно пользователя @{} не существует'.format(text), chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
-
-
-
 
 
 def del_all_subscribe(chat_id):
@@ -508,8 +526,6 @@ def del_subscribe(user, chat_id):
     logger.info('Unsubscribe @{} for user {}'.format(user, chat_id))
     conn.commit()
     c.close()
-
-
 
 
 def menu(callback_id, chat_id, notifi=None):
@@ -550,17 +566,20 @@ def list_subscribe(callback_id, chat_id):
     return mid
 
 
+
 def main():
-    logger.info('*** Start bot instaspy ***')
     marker = None
     mid_m = None
     mid_d = None
     cmd = None
+    #update_thred = Thread(target=update_stories)
+    #update_thred.start()
+    # update_thred.join()
     while True:
         update = bot.get_updates(marker, limit=1)
         if update is None:
             # chat_status_control()
-            update_stories()
+            # update_stories()
             continue
         marker = bot.get_marker(update)
         type_upd = bot.get_update_type(update)
@@ -606,6 +625,9 @@ def main():
             mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
             cmd = payload
 
+
+update_thred = Thread(target=update_stories)
+update_thred.start()
 
 if __name__ == '__main__':
     try:
