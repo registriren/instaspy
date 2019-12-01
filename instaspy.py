@@ -436,6 +436,7 @@ def update_stories():
                 users = get_subscribe(chat)
                 user = users.split(' ')
                 start_download(user, chat)
+                del_history(chat)
 
 
 def chat_status_control():
@@ -490,13 +491,8 @@ def subscribe(text, chat_id):
         else:
             res = []
         if len(res) < 10:
-            print(len(res))
             upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
             mid = bot.get_message_id(upd)
-            # if start_download([text], chat_id):
-            # start_download_thred = Thread(target=start_download, args=([text], chat_id))
-            # start_download_thred.start()
-            # start_download_thred.join()
             if check_user(text):
                 bot.delete_message(mid)
                 add_subscribe(chat_id, text)
@@ -506,6 +502,24 @@ def subscribe(text, chat_id):
                 bot.send_message('Ошибка. Возможно пользователя @{} не существует'.format(text), chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
+
+
+def del_history(chat):
+    hist = get_history(chat)
+    now = datetime.datetime.now() - datetime.timedelta(days=2)
+    now = now.strftime("%Y-%m-%d")
+    if hist:
+        hist = hist.split(' ')
+        hist = [x for x in hist if now not in x]
+        hist = ' '.join(hist)
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET history = '{}' WHERE chat_id = {}".format(hist, chat))
+        conn.commit()
+        c.close()
+        logger.info('Delete not relevant history for user {0!s}'.format(chat))
+    else:
+        return
 
 
 def del_all_subscribe(chat_id):
@@ -572,14 +586,10 @@ def main():
     mid_m = None
     mid_d = None
     cmd = None
-    #update_thred = Thread(target=update_stories)
-    #update_thred.start()
-    # update_thred.join()
     while True:
         update = bot.get_updates(marker, limit=1)
         if update is None:
             # chat_status_control()
-            # update_stories()
             continue
         marker = bot.get_marker(update)
         type_upd = bot.get_update_type(update)
