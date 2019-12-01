@@ -461,7 +461,7 @@ def get_subscribe(chat_id):
 
 def add_subscribe(chat_id, subscribe):
     now = datetime.datetime.now()
-    now = now - datetime.timedelta(seconds=3500)
+    now = now - datetime.timedelta(seconds=3550)
     delay = now.strftime("%d-%m-%Y %H:%M")
     res = get_subscribe(chat_id)
     c = conn.cursor()
