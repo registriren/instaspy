@@ -240,7 +240,7 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
             logger.info("Story downloading ended with " + str(len(list_image_new)) + " new images and " + str(
                 len(list_video_new)) + " new videos downloaded.")
             attach = bot.attach_image(list_image_new) + bot.attach_video(list_video_new)
-            bot.send_content(attach, chat_id, text='Новые истории от @{}'.format(user_to_check))
+            bot.send_content(attach, chat_id, text='Новые истории от *{}*\n\ninstagram.com/{}'.format(user_to_check, user_to_check))
             shutil.rmtree(os.getcwd() + "/stories/{}".format(user_to_check), ignore_errors=False, onerror=None)
         else:
             logger.info("No new stories were downloaded.")
@@ -437,6 +437,7 @@ def update_stories():
                 user = users.split(' ')
                 start_download(user, chat)
                 del_history(chat)
+            time.sleep(5)
 
 
 def chat_status_control():
@@ -491,15 +492,15 @@ def subscribe(text, chat_id):
         else:
             res = []
         if len(res) < 10:
-            upd = bot.send_message('Получаю информацию пользователя @{} ...'.format(text), chat_id)
+            upd = bot.send_message('Получаю информацию пользователя *{}* ...'.format(text), chat_id)
             mid = bot.get_message_id(upd)
             if check_user(text):
                 bot.delete_message(mid)
                 add_subscribe(chat_id, text)
-                bot.send_message('Вы подписаны на истории пользователя: @{}'.format(text), chat_id)
+                bot.send_message('Вы подписаны на истории пользователя: *{}*'.format(text), chat_id)
             else:
                 bot.delete_message(mid)
-                bot.send_message('Ошибка. Возможно пользователя @{} не существует'.format(text), chat_id)
+                bot.send_message('Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(text), chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
 
