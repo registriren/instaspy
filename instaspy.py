@@ -506,7 +506,7 @@ def subscribe(text, chat_id):
 
 def del_history(chat):
     hist = get_history(chat)
-    now = datetime.datetime.now() - datetime.timedelta(days=2)
+    now = datetime.datetime.now() - datetime.timedelta(days=4)
     now = now.strftime("%Y-%m-%d")
     if hist:
         hist = hist.split(' ')
