@@ -239,8 +239,10 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
         if (len(list_image_new) != 0) or (len(list_video_new) != 0):
             logger.info("Story downloading ended with " + str(len(list_image_new)) + " new images and " + str(
                 len(list_video_new)) + " new videos downloaded.")
-            attach = bot.attach_image(list_image_new) + bot.attach_video(list_video_new)
-            bot.send_content(attach, chat_id, text='Новые истории от *{}*\n\ninstagram.com/{}'.format(user_to_check, user_to_check))
+            key_link = bot.button_link('Открыть в Instagram', 'https://instagram.com/{}'.format(user_to_check))
+            key = bot.attach_buttons([key_link])
+            attach = bot.attach_image(list_image_new) + bot.attach_video(list_video_new) + key
+            bot.send_content(attach, chat_id, text='Новые истории от *{}*'.format(user_to_check))
             shutil.rmtree(os.getcwd() + "/stories/{}".format(user_to_check), ignore_errors=False, onerror=None)
         else:
             logger.info("No new stories were downloaded.")
@@ -441,11 +443,12 @@ def update_stories():
 
 
 def chat_status_control():
-    chats = bot.get_all_chats()
-    print(chats)
-    chats = chats['chats']
+    #chats = bot.get_all_chats()
+    chats = get_list_chats()
+    #chats = chats['chats']
     for i in chats:
         print(i)
+        print(bot.get_chat(i))
 
 
 def get_subscribe(chat_id):
@@ -590,7 +593,7 @@ def main():
     while True:
         update = bot.get_updates(marker, limit=1)
         if update is None:
-            # chat_status_control()
+            chat_status_control()
             continue
         marker = bot.get_marker(update)
         type_upd = bot.get_update_type(update)
