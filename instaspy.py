@@ -593,7 +593,7 @@ def main():
     while True:
         update = bot.get_updates(marker, limit=1)
         if update is None:
-            chat_status_control()
+            #chat_status_control()
             continue
         marker = bot.get_marker(update)
         type_upd = bot.get_update_type(update)
