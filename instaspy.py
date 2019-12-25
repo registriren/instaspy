@@ -174,13 +174,7 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
         list_image_new = []
 
         for media in feed_json:
-            if media.get('imported_taken_at'):
-                taken_ts = datetime.datetime.utcfromtimestamp(media.get('taken_at', "")).strftime(
-                    '%Y-%m-%d_%H-%M-%S') + "__" + datetime.datetime.utcfromtimestamp(
-                    media.get('imported_taken_at', "")).strftime(
-                    '%Y-%m-%d_%H-%M-%S')
-            else:
-                taken_ts = datetime.datetime.utcfromtimestamp(media.get('taken_at', "")).strftime(
+            taken_ts = datetime.datetime.utcfromtimestamp(media.get('taken_at', "")).strftime(
                     '%Y-%m-%d_%H-%M-%S')
 
             is_video = 'video_versions' in media and 'image_versions2' in media
