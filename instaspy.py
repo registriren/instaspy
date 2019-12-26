@@ -564,7 +564,7 @@ def list_subscribe(callback_id, chat_id):
     users = get_subscribe(chat_id)
     if users:
         for user in users.split(' '):
-            button = bot.button_callback('@{}'.format(user), user)
+            button = bot.button_callback('*{}*'.format(user), user)
             key.append(button)
         key.append(back)
         if callback_id != None:
