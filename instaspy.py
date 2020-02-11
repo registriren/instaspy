@@ -138,6 +138,10 @@ def login(username="", password=""):
     logger.info('Login cookie expiry date: {0!s}'.format(
         datetime.datetime.fromtimestamp(cookie_expiry).strftime('%Y-%m-%d at %I:%M:%S %p')))
 
+    delta = datetime.datetime.fromtimestamp(cookie_expiry) - datetime.datetime.now()
+    if delta.days << 1:
+        print('СКОРО МОЖЕТ ВСЁ СЛОМАТЬСЯ!?', delta.days)
+        # os.remove('credentials.json')
     return api
 
 
@@ -175,7 +179,7 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
 
         for media in feed_json:
             taken_ts = datetime.datetime.utcfromtimestamp(media.get('taken_at', "")).strftime(
-                    '%Y-%m-%d_%H-%M-%S')
+                '%Y-%m-%d_%H-%M-%S')
 
             is_video = 'video_versions' in media and 'image_versions2' in media
 
@@ -236,7 +240,7 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
             key_link = bot.button_link('Открыть в Instagram', 'https://instagram.com/{}'.format(user_to_check))
             key = bot.attach_buttons([key_link])
             attach = bot.attach_image(list_image_new) + bot.attach_video(list_video_new) + key
-            bot.send_content(attach, chat_id, text='Новые истории от *{}*'.format(user_to_check))
+            bot.send_message('Новые истории от *{}*'.format(user_to_check), chat_id, attachments=attach)
             shutil.rmtree(os.getcwd() + "/stories/{}".format(user_to_check), ignore_errors=False, onerror=None)
         else:
             logger.info("No new stories were downloaded.")
@@ -248,17 +252,10 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
         return False
 
 
-def download_file(url, path, attempt=0):
+def download_file(url, path):
     try:
         urllib.urlretrieve(url, path)
-    except Exception as e:
-        # if not attempt == 1:
-        #    attempt += 1
-        #    logger.error("({:d}) Download failed(file): {:s}.".format(attempt, str(e)))
-        #    logger.warning("Trying again in 5 seconds.")
-        #    time.sleep(5)
-        #    download_file(url, path, attempt)
-        # else:
+    except Exception:
         logger.error("Retry failed three times, skipping file.")
 
 
@@ -288,7 +285,7 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
     ig_client = login(username, password)
     logger.info("Stories will be downloaded to {:s}".format(os.getcwd()))
 
-    def download_user(index, user, attempt=0):
+    def download_user(index, user):
         try:
             if not user.isdigit():
                 user_res = ig_client.username_info(user)
@@ -312,14 +309,7 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
             if (index + 1) != len(users_to_check):
                 logger.info('({}/{}) 5 second time-out until next user...'.format((index + 1), len(users_to_check)))
                 time.sleep(5)
-        except Exception as e:
-            # if not attempt == 1:
-            #    attempt += 1
-            #    logger.error("({:d}) Download failed(user): {:s}.".format(attempt, str(e)))
-            #    logger.warning("Trying again in 5 seconds.")
-            #    time.sleep(5)
-            #    download_user(index, user, attempt)
-            # else:
+        except Exception:
             logger.error("Retry failed three times, skipping user.")
             return False
         return True
@@ -327,7 +317,6 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
     for index, user_to_check in enumerate(users_to_check):
         try:
             status = download_user(index, user_to_check)
-            # print('status = ', status)
             if not status:
                 return False
         except KeyboardInterrupt:
@@ -391,7 +380,7 @@ def get_delay(chat_id):
     c = conn.cursor()
     c.execute("SELECT delay FROM users WHERE chat_id= {}".format(chat_id))
     dat = c.fetchone()
-    if dat != None:
+    if dat:
         dat = dat[0]
     c.close()
     return dat
@@ -400,7 +389,7 @@ def get_delay(chat_id):
 def delay(chat_id):
     now = datetime.datetime.now()
     then = get_delay(chat_id)
-    if then != None:
+    if then:
         then = datetime.datetime.strptime(then, "%d-%m-%Y %H:%M")
     else:
         then = now
@@ -418,7 +407,7 @@ def get_list_chats():
     c.execute("SELECT chat_id FROM users WHERE chat_id")
     lst = c.fetchall()
     dat = []
-    if lst != None:
+    if lst:
         dat = [lst[i][0] for i in range(len(lst))]
     c.close()
     return dat
@@ -437,9 +426,9 @@ def update_stories():
 
 
 def chat_status_control():
-    #chats = bot.get_all_chats()
+    # chats = bot.get_all_chats()
     chats = get_list_chats()
-    #chats = chats['chats']
+    # chats = chats['chats']
     for i in chats:
         print(i)
         print(bot.get_chat(i))
@@ -450,7 +439,7 @@ def get_subscribe(chat_id):
     c.execute("SELECT subscribe FROM users WHERE chat_id= {}".format(chat_id))
     logger.info('Get subscribe for {}'.format(chat_id))
     dat = c.fetchone()
-    if dat != None:
+    if dat:
         dat = dat[0]
     else:
         dat = None
@@ -497,7 +486,9 @@ def subscribe(text, chat_id):
                 bot.send_message('Вы подписаны на истории пользователя: *{}*'.format(text), chat_id)
             else:
                 bot.delete_message(mid)
-                bot.send_message('Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(text), chat_id)
+                bot.send_message(
+                    'Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(
+                        text), chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
 
@@ -545,12 +536,10 @@ def menu(callback_id, chat_id, notifi=None):
     key2 = bot.button_callback('\U0001F4DD Подписаться', 'subscribe')
     key3 = bot.button_callback('\U0000274C Отписаться', 'unsubscribe')
     key4 = bot.button_callback('\U0001F525 Отписаться от всех', 'allunsubscribe')
-    key = [key1, key2, key3, key4]
-    if callback_id != None:
+    key = [[key1], [key2], [key3], [key4]]
+    if callback_id:
         button = bot.attach_buttons(key)
-        message = {"text": 'Выберите действие',
-                   "attachments": button}
-        upd = bot.send_answer_callback(callback_id, notification=notifi, message=message)
+        upd = bot.send_answer_callback(callback_id, notification=notifi, attachments=button)
     else:
         upd = bot.send_buttons('Выберите действие', key, chat_id)
     mid = bot.get_message_id(upd)
@@ -567,7 +556,7 @@ def list_subscribe(callback_id, chat_id):
             button = bot.button_callback('*{}*'.format(user), user)
             key.append(button)
         key.append(back)
-        if callback_id != None:
+        if callback_id:
             button = bot.attach_buttons(key)
             message = {"text": 'Подписки',
                        "attachments": button}
@@ -578,60 +567,56 @@ def list_subscribe(callback_id, chat_id):
     return mid
 
 
-
 def main():
-    marker = None
     mid_m = None
     mid_d = None
     cmd = None
     while True:
-        update = bot.get_updates(marker, limit=1)
-        if update is None:
-            #chat_status_control()
-            continue
-        marker = bot.get_marker(update)
-        type_upd = bot.get_update_type(update)
-        text = bot.get_text(update)
-        chat_id = bot.get_chat_id(update)
-        payload = bot.get_payload(update)
-        cbid = bot.get_callback_id(update)
-        if mid_m != None:
-            mid_d = mid_m
-        if type_upd == 'bot_started':
-            mid_m = menu(callback_id=cbid, chat_id=chat_id)
-        if type_upd == 'message_created':
-            if text.lower() == 'menu' or text.lower() == '/menu':
-                bot.delete_message(mid_d)
-                payload = 'home'
+        update = bot.get_updates()
+        chat_status_control()
+        if update:
+            type_upd = bot.get_update_type(update)
+            text = bot.get_text(update)
+            chat_id = bot.get_chat_id(update)
+            payload = bot.get_payload(update)
+            cbid = bot.get_callback_id(update)
+            if mid_m:
+                mid_d = mid_m
+            if type_upd == 'bot_started':
+                mid_m = menu(callback_id=cbid, chat_id=chat_id)
+            if type_upd == 'message_created':
+                if text.lower() == 'menu' or text.lower() == '/menu':
+                    bot.delete_message(mid_d)
+                    payload = 'home'
+                else:
+                    bot.delete_message(mid_d)
+                    subscribe(text, chat_id)
+            if payload == 'home':
+                mid_m = menu(callback_id=cbid, chat_id=chat_id)
+            users = get_subscribe(chat_id)
+            if not users:
+                list_users = []
             else:
+                list_users = users.split(' ')
+            if payload == 'subscribe':
                 bot.delete_message(mid_d)
-                subscribe(text, chat_id)
-        if payload == 'home':
-            mid_m = menu(callback_id=cbid, chat_id=chat_id)
-        users = get_subscribe(chat_id)
-        if not users:
-            list_users = []
-        else:
-            list_users = users.split(' ')
-        if payload == 'subscribe':
-            bot.delete_message(mid_d)
-            bot.send_message('Отправьте имя пользователя для подписки', chat_id)
-        elif payload and not users:
-            menu(callback_id=cbid, chat_id=chat_id, notifi='У Вас нет подписок')
-        elif payload in list_users:
-            if cmd == 'unsubscribe':
-                notify = 'Вы отписались от @{}'.format(payload)
-                mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
-                del_subscribe(payload, chat_id)
-            elif cmd != None:
-                mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
-        elif payload == 'allunsubscribe':
-            menu(callback_id=cbid, chat_id=chat_id, notifi='Вы отписаны от всех пользователей')
-            del_all_subscribe(chat_id)
-            cmd = None
-        elif payload == 'list' or payload == 'unsubscribe':
-            mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
-            cmd = payload
+                bot.send_message('Отправьте имя пользователя для подписки', chat_id)
+            elif payload and not users:
+                menu(callback_id=cbid, chat_id=chat_id, notifi='У Вас нет подписок')
+            elif payload in list_users:
+                if cmd == 'unsubscribe':
+                    notify = 'Вы отписались от @{}'.format(payload)
+                    mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
+                    del_subscribe(payload, chat_id)
+                elif cmd:
+                    mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
+            elif payload == 'allunsubscribe':
+                menu(callback_id=cbid, chat_id=chat_id, notifi='Вы отписаны от всех пользователей')
+                del_all_subscribe(chat_id)
+                cmd = None
+            elif payload == 'list' or payload == 'unsubscribe':
+                mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
+                cmd = payload
 
 
 update_thred = Thread(target=update_stories)
