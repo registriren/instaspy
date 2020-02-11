@@ -554,13 +554,11 @@ def list_subscribe(callback_id, chat_id):
     if users:
         for user in users.split(' '):
             button = bot.button_callback('*{}*'.format(user), user)
-            key.append(button)
-        key.append(back)
+            key.append([button])
+        key.append([back])
         if callback_id:
             button = bot.attach_buttons(key)
-            message = {"text": 'Подписки',
-                       "attachments": button}
-            upd = bot.send_answer_callback(callback_id, notification=None, message=message)
+            upd = bot.send_answer_callback(callback_id, notification=None, attachments=button)
         else:
             upd = bot.send_buttons('Подписки', key, chat_id)
         mid = bot.get_message_id(upd)
@@ -573,7 +571,7 @@ def main():
     cmd = None
     while True:
         update = bot.get_updates()
-        chat_status_control()
+        # chat_status_control()
         if update:
             type_upd = bot.get_update_type(update)
             text = bot.get_text(update)
