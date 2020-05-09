@@ -471,7 +471,7 @@ def add_subscribe(chat_id, subscribe):
 
 
 def subscribe(text, chat_id):
-    if len(text) << 100 and text != None:
+    if len(text) << 100 and text:
         res = get_subscribe(chat_id)
         if res:
             res = res.split(' ')
