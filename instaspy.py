@@ -267,7 +267,7 @@ def command_exists(command):
 def check_user(user):
     ig_client = login(username, password)
     try:
-        logger.info('check_user start....', user)
+        logger.info('check_user start....', str(user))
         #user_res = ig_client.username_info(user)
         user_res = ig_client.check_username(user)
         logger.info('check_user_res', user_res)
