@@ -281,7 +281,8 @@ def check_user(user):
         if follow_res.get("is_private") and not follow_res.get("following"):
             raise Exception("You are not following this private user.")
         return True
-    except:
+    except Exception as e:
+        logger.error("Error check_user: %s.", e)
         return False
 
 
