@@ -137,11 +137,6 @@ def login(username="", password=""):
     cookie_expiry = api.cookie_jar.auth_expires
     logger.info('Login cookie expiry date: {0!s}'.format(
         datetime.datetime.fromtimestamp(cookie_expiry).strftime('%Y-%m-%d at %I:%M:%S %p')))
-
-    delta = datetime.datetime.fromtimestamp(cookie_expiry) - datetime.datetime.now()
-    if delta.days << 1:
-        print('СКОРО МОЖЕТ ВСЁ СЛОМАТЬСЯ!?', delta.days)
-        # os.remove('credentials.json')
     return api
 
 
@@ -255,6 +250,7 @@ def get_media_story(user_to_check, user_id, ig_client, chat_id, no_video_thumbs=
 def download_file(url, path):
     try:
         urllib.urlretrieve(url, path)
+        urllib.urlcleanup()
     except Exception:
         logger.error("Retry failed three times, skipping file.")
 
@@ -271,8 +267,9 @@ def command_exists(command):
 def check_user(user):
     ig_client = login(username, password)
     try:
-        logger.info('check_user start....')
-        user_res = ig_client.username_info(user)
+        logger.info('check_user start....', user)
+        #user_res = ig_client.username_info(user)
+        user_res = ig_client.check_username(user)
         logger.info('check_user_res', user_res)
         user_id = user_res['user']['pk']
         logger.info('check_user_id', user_id)
