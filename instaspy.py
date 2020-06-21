@@ -272,8 +272,11 @@ def check_user(user):
     ig_client = login(username, password)
     try:
         user_res = ig_client.username_info(user)
+        logger.info('check_user_res', user_res)
         user_id = user_res['user']['pk']
+        logger.info('check_user_id', user_id)
         follow_res = ig_client.friendships_show(user_id)
+        logger.info('check_follow_res', follow_res)
         if follow_res.get("is_private") and not follow_res.get("following"):
             raise Exception("You are not following this private user.")
         return True
