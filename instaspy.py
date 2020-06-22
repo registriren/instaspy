@@ -267,14 +267,16 @@ def command_exists(command):
 def check_user(user):
     ig_client = login(username, password)
     try:
-        logger.info('check_user start....', str(user))
-        #user_res = ig_client.username_info(user)
-        user_res = ig_client.check_username(user)
-        logger.info('check_user_res', user_res)
+        # logger.info('check_user start....', str(user))
+        print(user)
+        user_res = ig_client.username_info(user)
+        #user_res = ig_client.check_username(user)
+        print(user_res)
+        # logger.info('check_user_res', user_res)
         user_id = user_res['user']['pk']
-        logger.info('check_user_id', user_id)
+        # logger.info('check_user_id', user_id)
         follow_res = ig_client.friendships_show(user_id)
-        logger.info('check_follow_res', follow_res)
+        # logger.info('check_follow_res', follow_res)
         if follow_res.get("is_private") and not follow_res.get("following"):
             raise Exception("You are not following this private user.")
         return True
@@ -488,9 +490,11 @@ def subscribe(text, chat_id):
                 bot.send_message('Вы подписаны на истории пользователя: *{}*'.format(text), chat_id)
             else:
                 bot.delete_message(mid)
+                #bot.send_message(
+                #    'Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(
+                #        text), chat_id)
                 bot.send_message(
-                    'Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(
-                        text), chat_id)
+                    'Сервис временно не доступен. Мы постараемся это исправить как можно скорее', chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
 
