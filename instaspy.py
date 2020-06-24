@@ -268,7 +268,6 @@ def check_user(user):
     ig_client = login(username, password)
     try:
         # logger.info('check_user start....', str(user))
-        print(user)
         user_res = ig_client.username_info(user)
         #user_res = ig_client.check_username(user)
         print(user_res)
@@ -490,11 +489,11 @@ def subscribe(text, chat_id):
                 bot.send_message('Вы подписаны на истории пользователя: *{}*'.format(text), chat_id)
             else:
                 bot.delete_message(mid)
-                #bot.send_message(
-                #    'Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(
-                #        text), chat_id)
                 bot.send_message(
-                    'Сервис временно не доступен. Мы постараемся это исправить как можно скорее', chat_id)
+                    'Ошибка. Возможно пользователя *{}* не существует или он ограничил доступ к своим данным'.format(
+                        text), chat_id)
+                #bot.send_message(
+                #    'Сервис временно не доступен. Мы постараемся это исправить как можно скорее', chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
 
