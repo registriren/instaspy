@@ -270,7 +270,6 @@ def check_user(user):
         # logger.info('check_user start....', str(user))
         user_res = ig_client.username_info(user)
         #user_res = ig_client.check_username(user)
-        print(user_res)
         # logger.info('check_user_res', user_res)
         user_id = user_res['user']['pk']
         # logger.info('check_user_id', user_id)
