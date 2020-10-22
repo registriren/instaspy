@@ -310,7 +310,7 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
                 return False
             if (index + 1) != len(users_to_check):
                 logger.info('({}/{}) 5 second time-out until next user...'.format((index + 1), len(users_to_check)))
-                time.sleep(5)
+                time.sleep(23)
         except Exception:
             logger.error("Retry failed three times, skipping user.")
             return False
@@ -424,7 +424,7 @@ def update_stories():
                 user = users.split(' ')
                 start_download(user, chat)
                 del_history(chat)
-            time.sleep(5)
+            time.sleep(54)
 
 
 def chat_status_control():
