@@ -280,6 +280,7 @@ def check_user(user):
         return True
     except Exception as e:
         logger.error("Error check_user: %s.", e)
+        time.sleep(333)
         return False
 
 
