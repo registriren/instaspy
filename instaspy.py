@@ -32,7 +32,7 @@ except ImportError:
 from instagram_private_api import ClientError
 from instagram_private_api import Client
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 config = 'config.json'
