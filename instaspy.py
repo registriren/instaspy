@@ -41,6 +41,7 @@ with open(config, 'r', encoding='utf-8') as c:
     token = conf['access_token']
     username = conf['username']
     password = conf['password']
+    admin = conf['admin_userid']
 
 bot = BotHandler(token)
 
@@ -51,6 +52,9 @@ if not os.path.isfile('users.db'):
                       (chat_id INTEGER PRIMARY KEY , subscribe TEXT, history TEXT,
                        delay TEXT)
                    """)
+    c.execute("""CREATE TABLE consumer
+                          (id INTEGER PRIMARY KEY, user_id TEXT)
+                       """)
     conn.commit()
     c.close()
     conn.close()
@@ -269,7 +273,7 @@ def check_user(user):
     try:
         # logger.info('check_user start....', str(user))
         user_res = ig_client.username_info(user)
-        #user_res = ig_client.check_username(user)
+        # user_res = ig_client.check_username(user)
         # logger.info('check_user_res', user_res)
         user_id = user_res['user']['pk']
         # logger.info('check_user_id', user_id)
@@ -280,7 +284,7 @@ def check_user(user):
         return True
     except Exception as e:
         logger.error("Error check_user: %s.", e)
-        time.sleep(333)
+        time.sleep(5)
         return False
 
 
@@ -310,7 +314,7 @@ def start_download(users_to_check, chat_id, novideothumbs=True):
                 logger.error("Could not make required directories. Please create a 'stories' folder manually.")
                 return False
             if (index + 1) != len(users_to_check):
-                logger.info('({}/{}) 5 second time-out until next user...'.format((index + 1), len(users_to_check)))
+                logger.info('({}/{}) 23 second time-out until next user...'.format((index + 1), len(users_to_check)))
                 time.sleep(23)
         except Exception:
             logger.error("Retry failed three times, skipping user.")
@@ -492,7 +496,7 @@ def subscribe(text, chat_id):
                 bot.send_message(
                     'Ошибка. Возможно пользователя {} не существует или он ограничил доступ к своим данным'.format(
                         text), chat_id)
-                #bot.send_message(
+                # bot.send_message(
                 #    'Сервис временно не доступен. Мы постараемся это исправить как можно скорее', chat_id)
         else:
             bot.send_message('Невозможно. Число Ваших подписок уже достигло 10', chat_id)
@@ -541,7 +545,9 @@ def menu(callback_id, chat_id, notifi=None):
     key2 = bot.button_callback('\U0001F4DD Подписаться', 'subscribe')
     key3 = bot.button_callback('\U0000274C Отписаться', 'unsubscribe')
     key4 = bot.button_callback('\U0001F525 Отписаться от всех', 'allunsubscribe')
-    key = [[key1], [key2], [key3], [key4]]
+    key5 = bot.button_callback('Добавить получателя', 'addconsumer')
+    key6 = bot.button_callback('Удалить получателя', 'delconsumer')
+    key = [[key1], [key2], [key3], [key4], [key5], [key6]]
     if callback_id:
         button = bot.attach_buttons(key)
         upd = bot.send_answer_callback(callback_id, notification=notifi, attachments=button)
@@ -570,7 +576,75 @@ def list_subscribe(callback_id, chat_id):
     return mid
 
 
+def list_consumers(callback_id, chat_id):
+    key = []
+    mid = None
+    back = bot.button_callback('🏠Назад', 'home', intent='positive')
+    users = get_consumers()
+    if users:
+        for user in users:
+            button = bot.button_callback('{}'.format(user), user)
+            key.append([button])
+        key.append([back])
+        if callback_id:
+            button = bot.attach_buttons(key)
+            upd = bot.send_answer_callback(callback_id, notification=None, attachments=button)
+        else:
+            upd = bot.send_buttons('Получатели', key, chat_id)
+        mid = bot.get_message_id(upd)
+    return mid
+
+
+def add_consumer(user_id):
+    c = conn.cursor()
+    try:
+        c.execute(
+            "INSERT INTO consumer (user_id) VALUES ({})".format(user_id))
+        logger.info('New consumer {} added'.format(user_id))
+        conn.commit()
+    except Exception as e:
+        logger.error('add_consumer: %s', e)
+    c.close()
+
+
+def del_consumer(user_id):
+    c = conn.cursor()
+    try:
+        c.execute("DELETE FROM consumer WHERE user_id= {}".format(user_id))
+        logger.info('Consumer {} deleted'.format(user_id))
+        conn.commit()
+    except Exception as e:
+        logger.error('del_consumer: %s', e)
+    c.close()
+
+
+def get_consumers():
+    c = conn.cursor()
+    c.execute("SELECT user_id FROM consumer")
+    dat = c.fetchall()
+    if dat:
+        dat = dat[0]
+    else:
+        dat = None
+    c.close()
+    return dat
+
+
+def check_consumer(user_id):
+    user_id = str(user_id)
+    c = conn.cursor()
+    c.execute("SELECT id FROM consumer WHERE user_id= {}".format(user_id))
+    id = c.fetchall()
+    if id:
+        check = True
+    else:
+        check = False
+    c.close()
+    return check
+
+
 def main():
+    flag = None
     mid_m = None
     mid_d = None
     cmd = None
@@ -578,48 +652,90 @@ def main():
         update = bot.get_updates()
         # chat_status_control()
         if update:
-            type_upd = bot.get_update_type(update)
-            text = bot.get_text(update)
-            chat_id = bot.get_chat_id(update)
-            payload = bot.get_payload(update)
-            cbid = bot.get_callback_id(update)
-            if mid_m:
-                mid_d = mid_m
-            if type_upd == 'bot_started':
-                mid_m = menu(callback_id=cbid, chat_id=chat_id)
-            if type_upd == 'message_created':
-                if text.lower() == 'menu' or text.lower() == '/menu':
-                    bot.delete_message(mid_d)
-                    payload = 'home'
+            user_id = bot.get_user_id(update)
+            if check_consumer(user_id) or str(user_id) == admin:
+                type_upd = bot.get_update_type(update)
+                text = bot.get_text(update)
+                chat_id = bot.get_chat_id(update)
+                payload = bot.get_payload(update)
+                cbid = bot.get_callback_id(update)
+                if mid_m:
+                    mid_d = mid_m
+                if type_upd == 'bot_started':
+                    mid_m = menu(callback_id=cbid, chat_id=chat_id)
+                if type_upd == 'message_created':
+                    if text.lower() == 'menu' or text.lower() == '/menu':
+                        bot.delete_message(mid_d)
+                        payload = 'home'
+                    elif flag == 'addconsumer':
+                        try:
+                            user_id = text
+                            flag = None
+                        except:
+                            user_id = None
+                            flag = None
+                        if user_id:
+                            bot.delete_message(mid_d)
+                            add_consumer(user_id)
+                            bot.send_message('Получатель {} добавлен'.format(user_id), chat_id)
+                            payload = 'home'
+                        else:
+                            payload = 'home'
+                    else:
+                        bot.delete_message(mid_d)
+                        subscribe(text, chat_id)
+                users = get_subscribe(chat_id)
+                consumers = get_consumers()
+                if not users:
+                    list_users = []
                 else:
+                    list_users = users.split(' ')
+                if not consumers:
+                    list_consumer = []
+                else:
+                    list_consumer = consumers
+                if payload == 'home':
+                    mid_m = menu(callback_id=cbid, chat_id=chat_id)
+                elif payload == 'subscribe':
                     bot.delete_message(mid_d)
-                    subscribe(text, chat_id)
-            if payload == 'home':
-                mid_m = menu(callback_id=cbid, chat_id=chat_id)
-            users = get_subscribe(chat_id)
-            if not users:
-                list_users = []
+                    bot.send_message('Отправьте имя пользователя для подписки', chat_id)
+                elif payload == 'addconsumer' and str(user_id) == admin:
+                    # bot.delete_message(mid_d)
+                    bot.send_message('Отправьте user_id получателя', chat_id)
+                    flag = 'addconsumer'
+                elif payload == 'list' and not users:
+                    menu(callback_id=cbid, chat_id=chat_id, notifi='У Вас нет подписок')
+                elif payload == 'delconsumer' and not list_consumer and str(user_id) == admin:
+                    menu(callback_id=cbid, chat_id=chat_id, notifi='Нет получателей')
+                elif payload in list_users:
+                    if cmd == 'unsubscribe':
+                        notify = 'Вы отписались от {}'.format(payload)
+                        mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
+                        del_subscribe(payload, chat_id)
+                    elif cmd:
+                        mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
+                elif payload in list_consumer and str(user_id) == admin:
+                    if cmd == 'delconsumer':
+                        notify = 'Вы удалили получателя {}'.format(payload)
+                        mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
+                        del_consumer(payload)
+                    elif cmd:
+                        mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
+                elif payload == 'allunsubscribe':
+                    menu(callback_id=cbid, chat_id=chat_id, notifi='Вы отписаны от всех пользователей')
+                    del_all_subscribe(chat_id)
+                    cmd = None
+                elif payload == 'list' or payload == 'unsubscribe':
+                    mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
+                    cmd = payload
+                elif payload == 'delconsumer' and str(user_id) == admin:
+                    mid_m = list_consumers(callback_id=cbid, chat_id=chat_id)
+                    cmd = payload
+                elif payload:
+                    menu(callback_id=cbid, chat_id=chat_id, notifi='Доступ запрещён!')
             else:
-                list_users = users.split(' ')
-            if payload == 'subscribe':
-                bot.delete_message(mid_d)
-                bot.send_message('Отправьте имя пользователя для подписки', chat_id)
-            elif payload and not users:
-                menu(callback_id=cbid, chat_id=chat_id, notifi='У Вас нет подписок')
-            elif payload in list_users:
-                if cmd == 'unsubscribe':
-                    notify = 'Вы отписались от {}'.format(payload)
-                    mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi=notify)
-                    del_subscribe(payload, chat_id)
-                elif cmd:
-                    mid_m = menu(callback_id=cbid, chat_id=chat_id, notifi='Жду команду')
-            elif payload == 'allunsubscribe':
-                menu(callback_id=cbid, chat_id=chat_id, notifi='Вы отписаны от всех пользователей')
-                del_all_subscribe(chat_id)
-                cmd = None
-            elif payload == 'list' or payload == 'unsubscribe':
-                mid_m = list_subscribe(callback_id=cbid, chat_id=chat_id)
-                cmd = payload
+                bot.send_message('Доступ запрещён!', chat_id=None, user_id=user_id)
+
 
 
 update_thred = Thread(target=update_stories)
