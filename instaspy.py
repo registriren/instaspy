@@ -621,11 +621,10 @@ def del_consumer(user_id):
 def get_consumers():
     c = conn.cursor()
     c.execute("SELECT user_id FROM consumer")
-    dat = c.fetchall()
-    if dat:
-        dat = dat[0]
-    else:
-        dat = None
+    lst = c.fetchall()
+    dat = []
+    if lst:
+        dat = [lst[i][0] for i in range(len(lst))]
     c.close()
     return dat
 
@@ -735,7 +734,6 @@ def main():
                     menu(callback_id=cbid, chat_id=chat_id, notifi='Доступ запрещён!')
             else:
                 bot.send_message('Доступ запрещён!', chat_id=None, user_id=user_id)
-
 
 
 update_thred = Thread(target=update_stories)
