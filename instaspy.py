@@ -110,6 +110,11 @@ def get_media_story(user_to_check, chat_id):
                             return False
 
         if (len(list_image_new) != 0) or (len(list_video_new) != 0):
+            try:
+                list_video_new.reverse()
+                list_image_new.reverse()
+            except Exception:
+                logger.info('REVERSE: One of the lists is empty')
             logger.info("Story downloading ended with " + str(len(list_image_new)) + " new images and " + str(
                 len(list_video_new)) + " new videos downloaded.")
             key_link = bot.button_link('Открыть в Instagram', 'https://instagram.com/{}'.format(user_to_check))
