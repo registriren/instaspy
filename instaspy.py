@@ -70,7 +70,7 @@ def check_user(user):
             return True
     except Exception as e:
         logger.warning("No check_user: %s.", e)
-        time.sleep(5)
+        time.sleep(30)
         return False
 
 
@@ -145,7 +145,7 @@ def start_download(users_to_check, chat_id):
                 return False
             if (index + 1) != len(users_to_check):
                 logger.info('({}/{}) 23 second time-out until next user...'.format((index + 1), len(users_to_check)))
-                time.sleep(23)
+                time.sleep(100)
         except Exception:
             logger.error("Retry failed three times, skipping user.")
             return False
@@ -561,7 +561,7 @@ def update_stories():
                 user = users.split(' ')
                 start_download(user, chat)
                 del_history(chat)
-            time.sleep(54)
+            time.sleep(1000)
 
 
 update_thred = Thread(target=update_stories)
