@@ -27,7 +27,16 @@ with open(config, 'r', encoding='utf-8') as c:
 bot = BotHandler(token)
 
 L = instaloader.Instaloader()
-L.login(username, password)
+try:
+    L.load_session_from_file(username)
+    logger.info('Load session from file is OK')
+except Exception as e:
+    logger.info('Load session false. Create new coockies file: ', e)
+    try:
+        L.login(username, password)
+        L.save_session_to_file()
+    except instaloader.exceptions.ConnectionException as e:
+        logger.error('Login Failed! - ', e)
 
 if not os.path.isfile('users.db'):
     conn = sqlite3.connect("users.db")
