@@ -31,12 +31,12 @@ try:
     L.load_session_from_file(username)
     logger.info('Load session from file is OK')
 except Exception as e:
-    logger.info('Load session false. Create new coockies file: ', e)
+    logger.info('Load session false. Create new coockies file: ', str(e))
     try:
         L.login(username, password)
         L.save_session_to_file()
     except instaloader.exceptions.ConnectionException as e:
-        logger.error('Login Failed! - ', e)
+        logger.error('Login Failed! - ', str(e))
 
 if not os.path.isfile('users.db'):
     conn = sqlite3.connect("users.db")
